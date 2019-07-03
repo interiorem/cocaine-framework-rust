@@ -7,30 +7,15 @@ use futures::Future;
 use {Error, Request, Service};
 use dispatch::PrimitiveDispatch;
 
-/// A grant type.
-#[derive(Clone, Debug)]
-pub enum Grant {
-    /// This can be exchanged to a ticket with basic client credentials, like client id.
-    ClientCredentials,
-}
-
-impl Grant {
-    fn ty(&self) -> &str {
-        match *self {
-            Grant::ClientCredentials => "client_credentials",
-        }
-    }
-}
-
 enum Method {
-    TicketFull,
+    Ticket,
 }
 
 impl Into<u64> for Method {
     #[inline]
     fn into(self) -> u64 {
         match self {
-            Method::TicketFull => 1,
+            Method::Ticket => 0,
         }
     }
 }
@@ -53,21 +38,15 @@ impl Tvm {
     }
 
     /// Exchanges your credentials for a TVM ticket.
-    pub fn ticket(&self, id: u32, secret: &str, grant: &Grant) ->
+    pub fn ticket(&self, id: u32, secret: &str) ->
         impl Future<Item = String, Error = Error>
     {
-        let method = Method::TicketFull.into();
-        let ty = grant.ty();
-        let args: HashMap<String, String> = HashMap::new();
+        let method = Method::Ticket.into();
 
         let (dispatch, future) = PrimitiveDispatch::pair();
 
-        match *grant {
-            Grant::ClientCredentials => {
-                self.service.call(Request::new(method, &(id, secret, ty, args)).unwrap(), dispatch);
-            }
-        }
-
+        self.service.call(Request::new(method, &(id, secret)).unwrap(), dispatch);
+        
         future
     }
 }
